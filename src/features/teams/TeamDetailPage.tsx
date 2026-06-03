@@ -29,9 +29,6 @@ export function TeamDetailPage() {
   const deleteParticipant = useDeleteParticipant()
   const queryClient = useQueryClient()
 
-  const registeredGroups = Array.from(new Set((team?.participants ?? []).map((p) => p.prayerGroup).filter(Boolean) as string[])).sort()
-  const registeredCells = Array.from(new Set((team?.participants ?? []).map((p) => p.cell).filter(Boolean) as string[])).sort()
-
   const handleDeleteParticipant = (id: string, name: string) => {
     if (!window.confirm(`Deseja remover "${name}" da equipe? Esta ação não pode ser desfeita.`))
       return
@@ -206,8 +203,6 @@ export function TeamDetailPage() {
       <Modal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} title="Adicionar Membro">
         <ParticipantForm
           teamId={teamId!}
-          registeredGroups={registeredGroups}
-          registeredCells={registeredCells}
           onSuccess={() => {
             setAddModalOpen(false)
             queryClient.invalidateQueries({ queryKey: ['teams', teamId] })
@@ -220,8 +215,6 @@ export function TeamDetailPage() {
           <ParticipantForm
             teamId={teamId!}
             participant={editingParticipant}
-            registeredGroups={registeredGroups}
-            registeredCells={registeredCells}
             onSuccess={() => {
               setEditingParticipant(null)
               queryClient.invalidateQueries({ queryKey: ['teams', teamId] })

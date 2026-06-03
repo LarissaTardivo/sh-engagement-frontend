@@ -360,7 +360,7 @@ export function PublicPage() {
 
             {searchType === 'participante' && (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {participants.map(p => <ParticipantCard key={p.id} p={p} />)}
+                {participants.map(p => <ParticipantCard key={p.name} p={p} />)}
               </div>
             )}
 
