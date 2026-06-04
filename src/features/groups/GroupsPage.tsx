@@ -7,6 +7,7 @@ import { Modal } from '../../shared/components/Modal'
 import {
   useCellsWithParticipants, useCreateCell, useUpdateCell, useDeleteCell,
   usePrayerGroupsWithParticipants, useCreatePrayerGroup, useUpdatePrayerGroup, useDeletePrayerGroup,
+  useUpdateParticipant, useRemoveParticipantFromGroup,
 } from './useGroups'
 import { createStandaloneParticipant } from '../../shared/lib/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -55,7 +56,15 @@ const PRAYER_GROUP_CATEGORIES = [
   { value: 'Jovens', label: 'Jovens' },
 ]
 
-function ParticipantsList({ participants }: { participants: { id: string; name: string; communityType: CommunityType; team: { name: string } | null }[] }) {
+function ParticipantsList({
+  participants,
+  onEdit,
+  onDelete,
+}: {
+  participants: { id: string; name: string; communityType: CommunityType; team: { name: string } | null }[]
+  onEdit: (participant: { id: string; name: string; communityType: CommunityType }) => void
+  onDelete: (id: string, name: string) => void
+}) {
   if (participants.length === 0) {
     return <p className="px-6 py-3 text-xs text-gray-400 italic">Nenhum membro cadastrado.</p>
   }
@@ -74,6 +83,24 @@ function ParticipantsList({ participants }: { participants: { id: string; name: 
               {communityLabels[p.communityType]}
             </span>
             {p.team && <span className="text-xs text-gray-400">{p.team.name}</span>}
+            <button
+              onClick={() => onEdit({ id: p.id, name: p.name, communityType: p.communityType })}
+              className="p-1 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+              title="Editar membro"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => onDelete(p.id, p.name)}
+              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="Remover membro"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </li>
       ))}
@@ -154,6 +181,60 @@ function AddMemberModal({
   )
 }
 
+function EditMemberModal({
+  open, participant, groupType, onClose,
+}: {
+  open: boolean
+  participant: { id: string; name: string; communityType: CommunityType }
+  groupType: 'cell' | 'prayerGroup'
+  onClose: () => void
+}) {
+  const update = useUpdateParticipant()
+  const isObra = groupType === 'prayerGroup'
+  const communityOptions = isObra
+    ? [{ value: 'OBRA', label: 'Obra' }]
+    : [{ value: 'COMUNIDADE_VIDA', label: 'CV' }, { value: 'COMUNIDADE_ALIANCA', label: 'CAL' }]
+
+  const [name, setName] = useState(participant.name)
+  const [communityType, setCommunityType] = useState<CommunityType>(participant.communityType)
+  const [error, setError] = useState('')
+
+  const handleSave = () => {
+    if (!name.trim()) { setError('O nome é obrigatório.'); return }
+    update.mutate(
+      { id: participant.id, name: name.trim(), communityType },
+      { onSuccess: onClose, onError: () => setError('Erro ao salvar. Tente novamente.') }
+    )
+  }
+
+  return (
+    <Modal isOpen={open} onClose={onClose} title="Editar membro">
+      <div className="space-y-4">
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
+        <Input
+          label="Nome"
+          value={name}
+          onChange={e => { setName(e.target.value); setError('') }}
+          placeholder="Nome completo"
+          error={error && !name.trim() ? error : undefined}
+          autoFocus
+        />
+        <Select
+          label="Nível de Engajamento"
+          value={communityType}
+          onChange={e => setCommunityType(e.target.value as CommunityType)}
+          options={communityOptions}
+        />
+        <div className="flex justify-end pt-2">
+          <Button variant="primary" onClick={handleSave} loading={update.isPending}>Salvar</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function GroupCard({
   item, groupType, onEdit, onDelete, isPendingDelete,
 }: {
@@ -165,11 +246,18 @@ function GroupCard({
 }) {
   const [open, setOpen] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
+  const [editingMember, setEditingMember] = useState<{ id: string; name: string; communityType: CommunityType } | null>(null)
+  const removeMember = useRemoveParticipantFromGroup()
 
   const engaged = item.participants.filter(p => p.team === null)
 
+  const handleRemoveMember = (id: string, name: string) => {
+    if (!window.confirm(`Remover "${name}" do grupo? Isso também irá removê-lo das equipes em que está cadastrado.`)) return
+    removeMember.mutate(id)
+  }
+
   return (
-    <div className="border border-gray-100 rounded-lg overflow-hidden">
+    <div className="border border-gray-100 rounded-lg overflow-hidden w-full">
       <div
         className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer select-none"
         onClick={() => setOpen(o => !o)}
@@ -181,17 +269,19 @@ function GroupCard({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm text-gray-800 truncate">{item.name}</span>
-            {item.category && (
-              <span className="inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                {item.category}
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium text-gray-800 truncate">{item.name}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              {item.category && (
+                <span className="inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                  {item.category}
+                </span>
+              )}
+              <span className="text-xs text-gray-400">
+                {engaged.length} membro{engaged.length !== 1 ? 's' : ''}
               </span>
-            )}
+            </div>
           </div>
-          <span className="text-xs text-gray-400 shrink-0">
-            {engaged.length} membro{engaged.length !== 1 ? 's' : ''}
-          </span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2" onClick={e => e.stopPropagation()}>
           <button
@@ -206,7 +296,7 @@ function GroupCard({
           <button
             onClick={() => onEdit(item)}
             className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Editar"
+            title="Editar grupo"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -216,7 +306,7 @@ function GroupCard({
             onClick={() => onDelete(item)}
             disabled={isPendingDelete}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Excluir"
+            title="Excluir grupo"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -224,13 +314,28 @@ function GroupCard({
           </button>
         </div>
       </div>
-      {open && <ParticipantsList participants={engaged} />}
+      {open && (
+        <ParticipantsList
+          participants={engaged}
+          onEdit={setEditingMember}
+          onDelete={handleRemoveMember}
+        />
+      )}
       {addingMember && (
         <AddMemberModal
           open
           groupName={item.name}
           groupType={groupType}
           onClose={() => setAddingMember(false)}
+        />
+      )}
+      {editingMember && (
+        <EditMemberModal
+          key={editingMember.id}
+          open
+          participant={editingMember}
+          groupType={groupType}
+          onClose={() => setEditingMember(null)}
         />
       )}
     </div>

@@ -190,10 +190,14 @@ export async function createStandaloneParticipant(payload: {
 
 export async function updateParticipant(
   id: string,
-  payload: { name?: string; communityType?: CommunityType; prayerGroup?: string; cell?: string }
+  payload: { name?: string; communityType?: CommunityType; prayerGroup?: string | null; cell?: string | null }
 ): Promise<Participant> {
   const { data } = await api.patch<Participant>(`/participants/${id}`, payload)
   return data
+}
+
+export async function removeParticipantFromGroup(id: string): Promise<void> {
+  await api.delete(`/participants/${id}/group`)
 }
 
 export async function deleteParticipant(id: string): Promise<void> {

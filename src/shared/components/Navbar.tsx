@@ -78,7 +78,7 @@ export function Navbar() {
             className="flex items-center gap-2 text-gray-600 font-bold text-lg hover:text-gray-800 transition-colors"
           >
             <img src="/sh-icon.png" alt="SH" className="w-8 h-8 rounded-lg object-cover" />
-            <span className="hidden sm:inline">SH GRU - Engajamento</span>
+            <span>SH GRU - Engajamento</span>
           </Link>
         </div>
       </div>

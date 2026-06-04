@@ -38,7 +38,9 @@ function NameSelect({
   error?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -48,38 +50,75 @@ function NameSelect({
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
+  const handleOpen = () => {
+    if (disabled) return
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      const gap = 2
+      const maxDropdownHeight = 200
+      const spaceBelow = window.innerHeight - rect.bottom - gap
+      const spaceAbove = rect.top - gap
+
+      if (spaceBelow >= 80 || spaceBelow >= spaceAbove) {
+        setDropdownStyle({
+          top: rect.bottom + gap,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(maxDropdownHeight, Math.max(spaceBelow, 80)),
+        })
+      } else {
+        setDropdownStyle({
+          bottom: window.innerHeight - rect.top + gap,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(maxDropdownHeight, spaceAbove),
+        })
+      }
+    }
+    setOpen(o => !o)
+  }
+
   const selected = options.find(o => o.name === value)
 
   return (
     <div ref={ref} className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen(o => !o)}
+        onClick={handleOpen}
         className={[
-          'block w-full rounded-md border px-3 py-2 text-sm shadow-sm text-left',
+          'flex items-center justify-between w-full rounded-md border px-3 py-2 text-sm shadow-sm text-left',
           'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
           error ? 'border-red-400' : 'border-gray-300',
           disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white cursor-pointer',
         ].join(' ')}
       >
-        {selected ? (
-          <span className="flex flex-col">
-            <span>{selected.name}</span>
-            {selected.teamNames.length > 0 && (
-              <span className="text-xs font-medium text-emerald-600">
-                Engajado(a): {selected.teamNames.join(' | ')}
-              </span>
-            )}
-          </span>
-        ) : (
-          <span className="text-gray-400">{placeholder}</span>
-        )}
+        <span className="flex-1 min-w-0">
+          {selected ? (
+            <span className="flex flex-col">
+              <span className="text-gray-900">{selected.name}</span>
+              {selected.teamNames.length > 0 && (
+                <span className="text-xs font-medium text-emerald-600">
+                  Engajado(a): {selected.teamNames.join(' | ')}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="text-gray-400">{placeholder}</span>
+          )}
+        </span>
+        <svg className="h-4 w-4 text-gray-400 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
       {open && options.length > 0 && (
-        <ul className="absolute z-20 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <ul
+          style={{ position: 'fixed', zIndex: 9999, overflowY: 'auto', ...dropdownStyle }}
+          className="bg-white border border-gray-300 rounded-md shadow-md"
+        >
           {options.map(opt => (
             <li
               key={opt.name}
@@ -88,7 +127,7 @@ function NameSelect({
                 onChange(opt.name)
                 setOpen(false)
               }}
-              className={`px-3 py-2.5 cursor-pointer hover:bg-indigo-50 flex flex-col ${value === opt.name ? 'bg-indigo-50' : ''}`}
+              className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 flex flex-col ${value === opt.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
             >
               <span className="text-sm text-gray-900">{opt.name}</span>
               {opt.teamNames.length > 0 && (

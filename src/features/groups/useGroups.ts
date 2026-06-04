@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getCells, getCellsWithParticipants, createCell, updateCell, deleteCell,
   getPrayerGroups, getPrayerGroupsWithParticipants, createPrayerGroup, updatePrayerGroup, deletePrayerGroup,
+  deleteParticipant, updateParticipant, removeParticipantFromGroup,
 } from '../../shared/lib/api'
 
 export function useCells() {
@@ -65,5 +66,40 @@ export function useDeletePrayerGroup() {
   return useMutation({
     mutationFn: (id: string) => deletePrayerGroup(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prayerGroups'] }),
+  })
+}
+
+export function useDeleteParticipant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteParticipant(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cells', 'withParticipants'] })
+      qc.invalidateQueries({ queryKey: ['prayerGroups', 'withParticipants'] })
+    },
+  })
+}
+
+export function useUpdateParticipant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: string; name?: string; communityType?: import('../../shared/lib/api').CommunityType; cell?: string | null; prayerGroup?: string | null }) =>
+      updateParticipant(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cells', 'withParticipants'] })
+      qc.invalidateQueries({ queryKey: ['prayerGroups', 'withParticipants'] })
+    },
+  })
+}
+
+export function useRemoveParticipantFromGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => removeParticipantFromGroup(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cells', 'withParticipants'] })
+      qc.invalidateQueries({ queryKey: ['prayerGroups', 'withParticipants'] })
+      qc.invalidateQueries({ queryKey: ['teams'] })
+    },
   })
 }

@@ -39,16 +39,12 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 text-white text-2xl font-bold mb-4 shadow-lg">
-            SH
-          </div>
+          <img src="/sh-icon.png" alt="SH" className="w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg mx-auto" />
           <h1 className="text-3xl font-bold text-gray-600">SH GRU - Engajamento</h1>
-          <p className="text-gray-500 mt-1">Área Administrativa</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Entrar</h2>
+        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-6">
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
