@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Select } from '../../shared/components/Select'
 import { Button } from '../../shared/components/Button'
 import { useCreateParticipant, useUpdateParticipant } from './useParticipants'
@@ -38,45 +38,50 @@ function NameSelect({
   error?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery('')
+      }
     }
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
+  const computeStyle = useCallback(() => {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    const gap = 2
+    const maxDropdownHeight = 240
+    const spaceBelow = window.innerHeight - rect.bottom - gap
+    const spaceAbove = rect.top - gap
+    if (spaceBelow >= 80 || spaceBelow >= spaceAbove) {
+      setDropdownStyle({ top: rect.bottom + gap, left: rect.left, width: rect.width, maxHeight: Math.min(maxDropdownHeight, Math.max(spaceBelow, 80)) })
+    } else {
+      setDropdownStyle({ bottom: window.innerHeight - rect.top + gap, left: rect.left, width: rect.width, maxHeight: Math.min(maxDropdownHeight, spaceAbove) })
+    }
+  }, [])
+
   const handleOpen = () => {
     if (disabled) return
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      const gap = 2
-      const maxDropdownHeight = 200
-      const spaceBelow = window.innerHeight - rect.bottom - gap
-      const spaceAbove = rect.top - gap
-
-      if (spaceBelow >= 80 || spaceBelow >= spaceAbove) {
-        setDropdownStyle({
-          top: rect.bottom + gap,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: Math.min(maxDropdownHeight, Math.max(spaceBelow, 80)),
-        })
-      } else {
-        setDropdownStyle({
-          bottom: window.innerHeight - rect.top + gap,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: Math.min(maxDropdownHeight, spaceAbove),
-        })
-      }
-    }
-    setOpen(o => !o)
+    computeStyle()
+    setOpen(o => {
+      if (!o) setTimeout(() => searchRef.current?.focus(), 0)
+      else setQuery('')
+      return !o
+    })
   }
+
+  const filtered = query
+    ? options.filter(o => o.name.toLowerCase().includes(query.toLowerCase()))
+    : options
 
   const selected = options.find(o => o.name === value)
 
@@ -114,30 +119,46 @@ function NameSelect({
         </svg>
       </button>
 
-      {open && options.length > 0 && (
-        <ul
-          style={{ position: 'fixed', zIndex: 9999, overflowY: 'auto', ...dropdownStyle }}
+      {open && (
+        <div
+          style={{ position: 'fixed', zIndex: 9999, display: 'flex', flexDirection: 'column', ...dropdownStyle }}
           className="bg-white border border-gray-300 rounded-md shadow-md"
         >
-          {options.map(opt => (
-            <li
-              key={opt.name}
-              onMouseDown={e => {
-                e.preventDefault()
-                onChange(opt.name)
-                setOpen(false)
-              }}
-              className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 flex flex-col ${value === opt.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
-            >
-              <span className="text-sm text-gray-900">{opt.name}</span>
-              {opt.teamNames.length > 0 && (
-                <span className="text-xs font-medium text-emerald-600">
-                  Engajado(a): {opt.teamNames.join(' | ')}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+          <div className="px-2 py-1.5 border-b border-gray-100 shrink-0">
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Pesquisar..."
+              className="w-full rounded border border-gray-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              onKeyDown={e => e.key === 'Escape' && (setOpen(false), setQuery(''))}
+            />
+          </div>
+          <ul className="overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-3 text-sm text-gray-400 text-center">Nenhum resultado</li>
+            ) : filtered.map(opt => (
+              <li
+                key={opt.name}
+                onMouseDown={e => {
+                  e.preventDefault()
+                  onChange(opt.name)
+                  setOpen(false)
+                  setQuery('')
+                }}
+                className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 flex flex-col ${value === opt.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
+              >
+                <span className="text-sm text-gray-900">{opt.name}</span>
+                {opt.teamNames.length > 0 && (
+                  <span className="text-xs font-medium text-emerald-600">
+                    Engajado(a): {opt.teamNames.join(' | ')}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
