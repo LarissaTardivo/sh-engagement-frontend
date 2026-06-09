@@ -79,12 +79,6 @@ export function TeamForm({ eventId, onSuccess, team }: TeamFormProps) {
         placeholder="Nome do coordenador"
         required
       />
-      <Input
-        label="Link do grupo de WhatsApp"
-        value={whatsappLink}
-        onChange={(e) => setWhatsappLink(e.target.value)}
-        placeholder="https://chat.whatsapp.com/..."
-      />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Atribuições (opcional)

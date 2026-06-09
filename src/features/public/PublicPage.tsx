@@ -48,27 +48,53 @@ function WhatsAppActions({ link }: { link: string }) {
   )
 }
 
+// ── Modal de Atribuições ──────────────────────────────────────────────────────
+function AssignmentsModal({ teamName, assignments, onClose }: { teamName: string; assignments: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Atribuições — {teamName}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="px-6 py-5 overflow-y-auto">
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{assignments}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Equipe ────────────────────────────────────────────────────────────────────
 function TeamCard({ team }: { team: TeamWithParticipants }) {
+  const [showAssignments, setShowAssignments] = useState(false)
   return (
+    <>
+      {showAssignments && team.assignments && (
+        <AssignmentsModal teamName={team.name} assignments={team.assignments} onClose={() => setShowAssignments(false)} />
+      )}
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-indigo-100">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
             {team.name.charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="font-semibold text-gray-900">{team.name}</h3>
             <p className="text-xs text-gray-500">{team.participants.length} membro{team.participants.length !== 1 ? 's' : ''}</p>
             {team.coordinatorName && <p className="text-xs text-gray-500 mt-0.5">Coord.: {team.coordinatorName}</p>}
           </div>
+          {team.assignments && (
+            <button
+              onClick={() => setShowAssignments(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              Ver atribuições
+            </button>
+          )}
         </div>
-      </div>
-      <div className="px-6 py-3 border-b border-gray-100 flex justify-center">
-        {team.whatsappLink
-          ? <WhatsAppActions link={team.whatsappLink} />
-          : <span className="text-sm text-gray-400 italic">Link do WhatsApp não configurado</span>
-        }
       </div>
       {team.participants.length === 0 ? (
         <div className="px-6 py-8 text-center text-sm text-gray-400">Nenhum membro nesta equipe.</div>
@@ -91,6 +117,7 @@ function TeamCard({ team }: { team: TeamWithParticipants }) {
         </ul>
       )}
     </div>
+    </>
   )
 }
 
