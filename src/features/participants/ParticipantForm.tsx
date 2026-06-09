@@ -20,6 +20,20 @@ const communityOptions = [
 interface NameOption {
   name: string
   teamNames: string[]
+  communityType: CommunityType
+  groups: string[]
+}
+
+const communityLabel: Record<CommunityType, string> = {
+  OBRA: 'Obra',
+  COMUNIDADE_VIDA: 'CV',
+  COMUNIDADE_ALIANCA: 'CAL',
+}
+
+const communityBadge: Record<CommunityType, string> = {
+  OBRA: 'bg-indigo-300 text-indigo-700',
+  COMUNIDADE_VIDA: 'bg-emerald-300 text-emerald-700',
+  COMUNIDADE_ALIANCA: 'bg-amber-300 text-amber-700',
 }
 
 function NameSelect({
@@ -147,14 +161,22 @@ function NameSelect({
                   setOpen(false)
                   setQuery('')
                 }}
-                className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 flex flex-col ${value === opt.name ? 'bg-indigo-50 text-indigo-700' : ''}`}
+                className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 ${value === opt.name ? 'bg-indigo-50' : ''}`}
               >
-                <span className="text-sm text-gray-900">{opt.name}</span>
-                {opt.teamNames.length > 0 && (
-                  <span className="text-xs font-medium text-emerald-600">
-                    Engajado(a): {opt.teamNames.join(' | ')}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-gray-900 truncate">{opt.name}</span>
+                  <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${communityBadge[opt.communityType]}`}>
+                    {communityLabel[opt.communityType]}
                   </span>
-                )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-600 truncate">{opt.groups.join(' | ')}</span>
+                  {opt.teamNames.length > 0 && (
+                    <span className="text-xs font-medium text-emerald-600">
+                      Engajado(a): {opt.teamNames.join(' | ')}
+                    </span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -183,33 +205,35 @@ export function ParticipantForm({ teamId, onSuccess, participant }: ParticipantF
 
   const isObra = communityType === 'OBRA'
   const isCommunity = communityType === 'COMUNIDADE_VIDA' || communityType === 'COMUNIDADE_ALIANCA'
-  const groupSelected = isObra ? !!prayerGroup : isCommunity ? !!cell : false
 
   const cellOptions = cellsWithP.map(c => ({ value: c.name, label: c.category ? `${c.name} — ${c.category}` : c.name }))
   const prayerGroupOptions = prayerGroupsWithP.map(g => ({ value: g.name, label: g.category ? `${g.name} — ${g.category}` : g.name }))
 
-  const participantSuggestions = isObra && prayerGroup
-    ? prayerGroupsWithP.find(g => g.name === prayerGroup)?.participants ?? []
-    : isCommunity && cell
-    ? cellsWithP.find(c => c.name === cell)?.participants ?? []
-    : []
+  const allFromCells = cellsWithP.flatMap(c => c.participants.map(p => ({ ...p, groupName: c.name })))
+  const allFromGroups = prayerGroupsWithP.flatMap(g => g.participants.map(p => ({ ...p, groupName: g.name })))
 
-  const grouped = new Map<string, string[]>()
-  for (const p of participantSuggestions) {
-    const teams = grouped.get(p.name) ?? []
-    if (p.team && !teams.includes(p.team.name)) teams.push(p.team.name)
-    grouped.set(p.name, teams)
+  const participantSources =
+    isObra && prayerGroup ? allFromGroups.filter(p => p.groupName === prayerGroup)
+    : isCommunity && cell ? allFromCells.filter(p => p.groupName === cell)
+    : communityType === 'OBRA' ? allFromGroups
+    : communityType ? allFromCells
+    : [...allFromCells, ...allFromGroups]
+
+  const groupedMap = new Map<string, { teamNames: string[]; communityType: CommunityType; groups: Set<string> }>()
+  for (const p of participantSources) {
+    const entry = groupedMap.get(p.name) ?? { teamNames: [], communityType: p.communityType, groups: new Set<string>() }
+    if (p.team && !entry.teamNames.includes(p.team.name)) entry.teamNames.push(p.team.name)
+    entry.groups.add(p.groupName)
+    groupedMap.set(p.name, entry)
   }
-  const nameOptions: NameOption[] = Array.from(grouped.entries())
+  const nameOptions: NameOption[] = Array.from(groupedMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([n, teamNames]) => ({ name: n, teamNames }))
+    .map(([n, { teamNames, communityType: ct, groups }]) => ({ name: n, teamNames, communityType: ct, groups: Array.from(groups) }))
 
   const validate = () => {
     const errs: Record<string, string> = {}
     if (!name.trim()) errs.name = 'O nome é obrigatório.'
     if (!communityType) errs.communityType = 'Selecione o nível de engajamento.'
-    if (isObra && !prayerGroup.trim()) errs.prayerGroup = 'O grupo de oração é obrigatório para Obra.'
-    if (isCommunity && !cell.trim()) errs.cell = 'A célula é obrigatória.'
     return errs
   }
 
@@ -304,14 +328,17 @@ export function ParticipantForm({ teamId, onSuccess, participant }: ParticipantF
         <NameSelect
           options={nameOptions}
           value={name}
-          onChange={v => { setName(v); setErrors(p => ({ ...p, name: '' })) }}
-          disabled={!communityType || !groupSelected}
-          placeholder={
-            !communityType ? 'Selecione o nível de engajamento primeiro'
-            : !groupSelected ? 'Selecione a célula ou grupo primeiro'
-            : nameOptions.length === 0 ? 'Nenhum membro encontrado'
-            : 'Selecione'
-          }
+          onChange={v => {
+            setName(v)
+            setErrors(p => ({ ...p, name: '' }))
+            const opt = nameOptions.find(o => o.name === v)
+            if (opt) {
+              if (!communityType) setCommunityType(opt.communityType)
+              if (opt.communityType === 'OBRA' && !prayerGroup && opt.groups[0]) setPrayerGroup(opt.groups[0])
+              else if ((opt.communityType === 'COMUNIDADE_VIDA' || opt.communityType === 'COMUNIDADE_ALIANCA') && !cell && opt.groups[0]) setCell(opt.groups[0])
+            }
+          }}
+          placeholder={nameOptions.length === 0 ? 'Nenhum membro encontrado' : 'Selecione ou pesquise'}
           error={errors.name}
         />
       </div>
