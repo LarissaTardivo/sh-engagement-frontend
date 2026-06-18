@@ -248,8 +248,14 @@ function GroupCard({
   const [addingMember, setAddingMember] = useState(false)
   const [editingMember, setEditingMember] = useState<{ id: string; name: string; communityType: CommunityType } | null>(null)
   const removeMember = useRemoveParticipantFromGroup()
-
-  const engaged = item.participants.filter(p => p.team === null)
+  const seenNames = new Set<string>()
+  const engaged = item.participants
+    .filter(p => p.team === null)
+    .filter(p => {
+      if (seenNames.has(p.name)) return false
+      seenNames.add(p.name)
+      return true
+    })
 
   const handleRemoveMember = (id: string, name: string) => {
     if (!window.confirm(`Remover "${name}" do grupo? Isso também irá removê-lo das equipes em que está cadastrado.`)) return
