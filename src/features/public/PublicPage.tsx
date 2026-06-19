@@ -132,7 +132,7 @@ interface FlatParticipant {
 
 function ParticipantCard({ p }: { p: FlatParticipant }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center justify-between gap-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center justify-between gap-4 min-w-0 overflow-hidden">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm shrink-0">{p.name.charAt(0).toUpperCase()}</div>
         <div className="min-w-0">
