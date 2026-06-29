@@ -111,7 +111,12 @@ function TeamCard({ team }: { team: TeamWithParticipants }) {
                   )}
                 </div>
               </div>
-              <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${communityBadgeClasses[p.communityType]}`}>{communityLabels[p.communityType]}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {p.subscribed && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Inscrito</span>
+                )}
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${communityBadgeClasses[p.communityType]}`}>{communityLabels[p.communityType]}</span>
+              </div>
             </li>
           ))}
         </ul>
@@ -128,6 +133,7 @@ interface FlatParticipant {
   prayerGroup?: string | null
   cell?: string | null
   teamNames: string[]
+  subscribed: boolean
 }
 
 function ParticipantCard({ p }: { p: FlatParticipant }) {
@@ -143,7 +149,12 @@ function ParticipantCard({ p }: { p: FlatParticipant }) {
           )}
         </div>
       </div>
-      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${communityBadgeClasses[p.communityType]}`}>{communityLabels[p.communityType]}</span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {p.subscribed && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Inscrito</span>
+        )}
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${communityBadgeClasses[p.communityType]}`}>{communityLabels[p.communityType]}</span>
+      </div>
     </div>
   )
 }
@@ -237,6 +248,7 @@ export function PublicPage() {
           prayerGroup: p.prayerGroup,
           cell: p.cell,
           teamNames: [t.name],
+          subscribed: p.subscribed,
         })
       }
     }

@@ -25,6 +25,7 @@ export interface Participant {
   communityType: CommunityType
   prayerGroup?: string | null
   cell?: string | null
+  subscribed: boolean
   teamId: string
 }
 
@@ -190,7 +191,7 @@ export async function createStandaloneParticipant(payload: {
 
 export async function updateParticipant(
   id: string,
-  payload: { name?: string; communityType?: CommunityType; prayerGroup?: string | null; cell?: string | null }
+  payload: { name?: string; communityType?: CommunityType; prayerGroup?: string | null; cell?: string | null; subscribed?: boolean }
 ): Promise<Participant> {
   const { data } = await api.patch<Participant>(`/participants/${id}`, payload)
   return data

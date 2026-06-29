@@ -6,7 +6,7 @@ import { Button } from '../../shared/components/Button'
 import { Modal } from '../../shared/components/Modal'
 import { ParticipantForm } from '../participants/ParticipantForm'
 import { useTeam } from './useTeams'
-import { useDeleteParticipant } from '../participants/useParticipants'
+import { useDeleteParticipant, useUpdateParticipant } from '../participants/useParticipants'
 import type { CommunityType, Participant } from '../../shared/lib/api'
 
 const communityLabels: Record<CommunityType, string> = {
@@ -27,6 +27,7 @@ export function TeamDetailPage() {
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null)
   const { data: team, isLoading, isError } = useTeam(teamId!)
   const deleteParticipant = useDeleteParticipant()
+  const updateParticipant = useUpdateParticipant()
   const queryClient = useQueryClient()
 
   const handleDeleteParticipant = (id: string, name: string) => {
@@ -142,7 +143,16 @@ export function TeamDetailPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <label className="flex flex-col items-center gap-0.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={p.subscribed}
+                            onChange={() => updateParticipant.mutate({ id: p.id, teamId: teamId!, payload: { subscribed: !p.subscribed } })}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-[10px] text-gray-400">Inscrito</span>
+                        </label>
                         <button onClick={() => setEditingParticipant(p)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
@@ -161,6 +171,7 @@ export function TeamDetailPage() {
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nível de Engajamento</th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Inscrito</th>
                         <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
                       </tr>
                     </thead>
@@ -178,6 +189,14 @@ export function TeamDetailPage() {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${communityBadgeClasses[p.communityType]}`}>{communityLabels[p.communityType]}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={p.subscribed}
+                              onChange={() => updateParticipant.mutate({ id: p.id, teamId: teamId!, payload: { subscribed: !p.subscribed } })}
+                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-1">

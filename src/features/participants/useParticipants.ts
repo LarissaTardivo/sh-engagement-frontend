@@ -33,7 +33,7 @@ export function useUpdateParticipant() {
     }: {
       id: string
       teamId: string
-      payload: { name?: string; communityType?: CommunityType; prayerGroup?: string; cell?: string }
+      payload: { name?: string; communityType?: CommunityType; prayerGroup?: string; cell?: string; subscribed?: boolean }
     }) => updateParticipant(id, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamId] })
